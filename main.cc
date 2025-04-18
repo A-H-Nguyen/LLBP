@@ -37,6 +37,7 @@
 #include <string.h>
 #include <boost/program_options.hpp>
 #include <unordered_set>
+#include <utils/json.hpp>
 using namespace std;
 
 namespace po = boost::program_options;
@@ -103,8 +104,9 @@ UINT64 instruction_count = 0;
 
 
 
-std::string brmodel;
+// std::string brmodel;
 std::string outfile;
+std::string config_path;
 std::string trace_path;
 
 bool tabledump = false;
@@ -160,9 +162,10 @@ bool process_command_line(int argc, char** argv)
         po::options_description desc("Program Usage", 1024, 512);
         desc.add_options()
           ("help,h",         "produce help message")
-          ("bpmodel,model,b",    po::value<std::string>(&brmodel), "define branch predictor model")
-          ("input-file,i", po::value<std::string>(&trace_path)->required(), "input trace file")
-          ("output,o",     po::value<std::string>(&outfile), "output file")
+        //   ("bpmodel,model,b", po::value<std::string>(&brmodel)->required(), "define branch predictor model")
+          ("config-file,c",   po::value<std::string>(&config_path)->required(), "model configuration file")
+          ("input-file,i",  po::value<std::string>(&trace_path)->required(), "input trace file")
+          ("output,o",      po::value<std::string>(&outfile), "output file")
           ("simulate-btb",  po::bool_switch(&simulateBTB)->default_value(false), "Simulate BTB")
           ("tabledump,t",  po::bool_switch(&tabledump)->default_value(false), "dump TAGE tables")
           ("maxbrinst,m",  po::value<uint64_t>(&max_br_instruction)->default_value(dMAX), "max number of branches to simulate")
@@ -171,6 +174,7 @@ bool process_command_line(int argc, char** argv)
         ;
 
         po::positional_options_description p;
+        p.add("config-file", -1);
         p.add("input-file", -1);
 
         po::variables_map vm;
@@ -205,7 +209,7 @@ bool process_command_line(int argc, char** argv)
 
 int main(int argc, char* argv[]) {
 
-
+    std::string brmodel = "llbp";
 
     bool result = process_command_line(argc, argv);
     if (!result)

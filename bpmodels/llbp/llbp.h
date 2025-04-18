@@ -41,6 +41,8 @@
 #include "bpmodels/components/cache.h"
 #include "utils/histogram.h"
 
+#include <utils/json.hpp>
+
 namespace LLBP {
 
 
@@ -500,47 +502,70 @@ struct LLBPConfig {
   TSCLConfig tsclConfig;
 
 
-#define LLBP_CONSTRAINED
+// #define LLBP_CONSTRAINED
 
-#ifdef LLBP_CONSTRAINED
+// #ifdef LLBP_CONSTRAINED
     // Size of pattern sets and CD
-    int numPatterns = 16;
-    int numContexts = 1024*14;
+    // int numPatterns = 16;
+    // int numContexts = 1024*14;
+
+    // // Associativity of pattern sets and CD
+    // int ctxAssoc = 7;
+    // int ptrnAssoc = 4;
+
+    // // Tag widths
+    // int TTWidth = 13;
+    // int CTWidth = 14;
+
+    // // PB config
+    // int pbSize = 64;
+    // int pbAssoc = 4;
+// #else
+//     int numContexts = 1000000;
+//     int numPatterns = 1000000;
+
+//     int ctxAssoc = numContexts;
+//     int ptrnAssoc = numPatterns;
+
+//     int TTWidth = 20;
+//     int CTWidth = 31;
+
+//     int pbSize = 1;
+//     int pbAssoc = pbSize;
+// #endif
+
+
+    // int CtrWidth = 3;
+    // int ReplCtrWidth = 16; // unused
+    // int CtxReplCtrWidth = 2;
+
+    // bool simulateTiming = false;
+    // int accessDelay = 5;
+
+
+    
+    int numPatterns;
+    int numContexts;
 
     // Associativity of pattern sets and CD
-    int ctxAssoc = 7;
-    int ptrnAssoc = 4;
+    int ctxAssoc;
+    int ptrnAssoc;
 
     // Tag widths
-    int TTWidth = 13;
-    int CTWidth = 14;
+    int TTWidth;
+    int CTWidth;
 
     // PB config
-    int pbSize = 64;
-    int pbAssoc = 4;
-#else
-    int numContexts = 1000000;
-    int numPatterns = 1000000;
+    int pbSize;
+    int pbAssoc;
 
-    int ctxAssoc = numContexts;
-    int ptrnAssoc = numPatterns;
+    int CtrWidth;
+    int ReplCtrWidth;
+    int CtxReplCtrWidth;
 
-    int TTWidth = 20;
-    int CTWidth = 31;
-
-    int pbSize = 1;
-    int pbAssoc = pbSize;
-#endif
-
-
-    int CtrWidth = 3;
-    int ReplCtrWidth = 16; // unused
-    int CtxReplCtrWidth = 2;
-
-    bool simulateTiming = false;
-    int accessDelay = 5;
-
-
+    bool simulateTiming;
+    int accessDelay;
+    
   void print() const {
     printf("LLBP Config: NumPatterns=%i, NumContexts=%i, ctxAssoc=%i, ptrnAssoc=%i, CtrWidth=%i, ReplCtrWidth=%i, CtxReplCtrWidth=%i, pbSize=%i, TTWidth=%i, CTWidth=%i, simMispFlush=%i, accessDelay=%i\n ",
            numPatterns, numContexts, ctxAssoc, ptrnAssoc, CtrWidth, ReplCtrWidth, CtxReplCtrWidth, pbSize, TTWidth, CTWidth, simulateTiming, accessDelay);
@@ -567,6 +592,9 @@ class LLBPTageSCL64k : public LLBP {
                 },
                 .simulateTiming = false,
             })
+    {}
+    LLBPTageSCL64k(LLBPConfig conf)
+        : LLBP(conf)
     {}
 };
 

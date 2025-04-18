@@ -315,27 +315,49 @@ class TageBase : public BasePredictor {
 // Default configuration is for the 64k TAGE predictor
 struct TageConfig {
 
-    int nhist = 36;
-    int minhist = 6;
-    int maxhist = 3000;
-    int LogG = 10;
-    int LogB = 13;
-    int Tbits = 8;
-    int nbanklow = 10;
-    int nbankhigh = 20;
-    int born = 13;
-    int assoc_start = 9;
-    int assoc_end = 23;
+    // int nhist = 36;
+    // int minhist = 6;
+    // int maxhist = 3000;
+    // int LogG = 10;
+    // int LogB = 13;
+    // int Tbits = 8;
+    // int nbanklow = 10;
+    // int nbankhigh = 20;
+    // int born = 13;
+    // int assoc_start = 9;
+    // int assoc_end = 23;
 
-    int uwidth = 1;
-    int cwidth = 3;
-    int log_size_use_alt = 4;
+    // int uwidth = 1;
+    // int cwidth = 3;
+    // int log_size_use_alt = 4;
 
-    bool tage8k = false;
-    bool disableInterleaving = false;
-    bool overwriteNotUseful = true;
-    bool removeAlliasing = false;
-    bool tagContext = false;
+    // bool tage8k = false;
+    // bool disableInterleaving = false;
+    // bool overwriteNotUseful = true;
+    // bool removeAlliasing = false;
+    // bool tagContext = false;
+
+    int nhist;
+    int minhist;
+    int maxhist;
+    int LogG;
+    int LogB;
+    int Tbits;
+    int nbanklow;
+    int nbankhigh;
+    int born;
+    int assoc_start;
+    int assoc_end;
+
+    int uwidth;
+    int cwidth;
+    int log_size_use_alt;
+
+    bool tage8k;
+    bool disableInterleaving;
+    bool overwriteNotUseful;
+    bool removeAlliasing;
+    bool tagContext;
 
     void print() const {
         printf("TAGE Config: nhist=%d minhist=%d maxhist=%d LogG=%d LogB=%d Tbits=%d nbanklow=%d nbankhigh=%d born=%d assoc_start=%d assoc_end=%d\n",

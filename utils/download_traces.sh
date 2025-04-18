@@ -34,8 +34,8 @@ set -x -e
 TRACES=""
 
 
-TRACES="${TRACES} mwnginxfpm-wiki"
-TRACES="${TRACES} dacapo-kafka"
+# TRACES="${TRACES} mwnginxfpm-wiki"
+# TRACES="${TRACES} dacapo-kafka"
 TRACES="${TRACES} dacapo-tomcat"
 TRACES="${TRACES} dacapo-spring"
 TRACES="${TRACES} renaissance-finagle-chirper"

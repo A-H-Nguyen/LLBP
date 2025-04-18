@@ -437,9 +437,13 @@ class TageSCL : public TageBase {
 // Configurations
 struct TSCLConfig {
     TageConfig tageConfig;
-    bool useSC = true;
-    bool useLoop = true;
-    int LogL = 5;
+    // bool useSC = true;
+    // bool useLoop = true;
+    // int LogL = 5;
+
+    bool useSC;
+    bool useLoop;
+    int LogL;
 
     void print() const {
         printf("SCL Config: useSC=%d, useLoop=%d\n", useSC, useLoop);
