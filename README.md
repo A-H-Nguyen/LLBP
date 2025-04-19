@@ -84,6 +84,11 @@ The branch predictor model can be either `tage64kscl`, `tage512kscl`, `llbp` or 
 ./build/predictor --model <predictor> -w <warmup instructions> -n <simulation instructions> <trace>
 ```
 
+With config file:
+```bash
+./build/predictor --config-file example_config.json -w 1000000 -n 10000 traces/mwnginxfpm-wiki.champsim.trace.gz
+```
+
 For convenience, the simulator contains a script to run the experiments on all evaluated benchmarks for a given branch predictor model (`./eval_benchmarks.sh <predictor>`).
 The results in form of a stats file are stored in the `results` directory. Note, the simulator will print out some intermediate results after every 5M instructions which is useful to monitor the progress of the simulation.
 
