@@ -5,6 +5,7 @@
 #include "tage/tage.h"
 #include "tage/tage_scl.h"
 #include "llbp/llbp.h"
+#include "utils/json.hpp"
 
 
 BasePredictor* CreateBP(std::string bp_name)
@@ -26,8 +27,12 @@ BasePredictor* CreateBP(std::string bp_name)
 }
 
 // BasePredictor* CreateBP(std::string bp_name, LLBP::LLBPConfig conf)
-BasePredictor* CreateBP(std::string bp_name, LLBP::LLBPConfig conf)
+BasePredictor* CreateBP(std::string bp_name, nlohmann::json json_conf)
 {
+
+    LLBP::LLBPConfig conf;
+    LLBP::from_json(json_conf, conf);
+
     // if (bp_name == "tage64k") {
     //     return new LLBP::Tage64k();
     // } else if (bp_name == "tage64kscl") {

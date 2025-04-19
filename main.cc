@@ -30,6 +30,7 @@
  * CPU simulator like ChampSim or gem5.
  */
 
+#include "bpmodels/llbp/llbp.h"
 #include <assert.h>
 #include <fstream>
 #include <stdlib.h>
@@ -237,7 +238,7 @@ int main(int argc, char* argv[]) {
     // Init variables
     ///////////////////////////////////////////////
 
-    brpred = CreateBP(brmodel);
+    brpred = CreateBP(brmodel, config_json);
 
     ChampSimTrace trace;
 

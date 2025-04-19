@@ -4,6 +4,7 @@
 // #define __BASE_PREDICTOR__
 
 #include "utils/common.h"
+#include "utils/json.hpp"
 
 class BasePredictor {
     static inline UINT32 SatIncrement(UINT32 x, UINT32 max) {
@@ -41,5 +42,7 @@ class BasePredictor {
 
 
 BasePredictor* CreateBP(std::string bp_name);
+BasePredictor* CreateBP(std::string bp_name, nlohmann::json json_conf);
+// BasePredictor* CreateBP(std::string bp_name, LLBP::LLBPConfig conf)
 
 // #endif  //__BASE_PREDICTOR__
