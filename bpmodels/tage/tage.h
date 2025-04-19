@@ -44,7 +44,7 @@
 
 #include "bpmodels/base_predictor.h"
 #include "bpmodels/components/hist_registers.h"
-
+#include <utils/json.hpp>
 
 
 namespace LLBP {
@@ -364,6 +364,29 @@ struct TageConfig {
             nhist, minhist, maxhist, LogG, LogB, Tbits, nbanklow, nbankhigh, born, assoc_start, assoc_end);
     }
 };
+
+inline void from_json(const nlohmann::json& input_json, TageConfig& conf) {
+    input_json.at("nhist").get_to(conf.nhist);
+    input_json.at("minhist").get_to(conf.minhist);
+    input_json.at("maxhist").get_to(conf.maxhist);
+    input_json.at("LogG").get_to(conf.LogG);
+    input_json.at("LogB").get_to(conf.LogB);
+    input_json.at("Tbits").get_to(conf.Tbits);
+    input_json.at("nbanklow").get_to(conf.nbanklow);
+    input_json.at("nbankhigh").get_to(conf.nbankhigh);
+    input_json.at("born").get_to(conf.born);
+    input_json.at("assoc_start").get_to(conf.assoc_start);
+    input_json.at("assoc_end").get_to(conf.assoc_end);
+    input_json.at("uwidth").get_to(conf.uwidth);
+    input_json.at("cwidth").get_to(conf.cwidth);
+    input_json.at("log_size_use_alt").get_to(conf.log_size_use_alt);
+    input_json.at("tage8k").get_to(conf.tage8k);
+    input_json.at("disableInterleaving").get_to(conf.disableInterleaving);
+    input_json.at("overwriteNotUseful").get_to(conf.overwriteNotUseful);
+    input_json.at("removeAlliasing").get_to(conf.removeAlliasing);
+    input_json.at("tagContext").get_to(conf.tagContext);
+}
+
 
 inline const TageConfig Tage64kConfig = {};
 

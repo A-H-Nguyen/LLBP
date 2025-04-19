@@ -1,8 +1,6 @@
 /* MIT License
  *
- * Copyright (c) 2024 David Schall and EASE lab
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * Copyright (c) 2024 David Schall and EASE lab Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
@@ -33,6 +31,7 @@
  */
 
 #include <assert.h>
+#include <fstream>
 #include <stdlib.h>
 #include <string.h>
 #include <boost/program_options.hpp>
@@ -208,13 +207,21 @@ bool process_command_line(int argc, char** argv)
 
 
 int main(int argc, char* argv[]) {
-
     std::string brmodel = "llbp";
 
     bool result = process_command_line(argc, argv);
     if (!result)
         return 1;
-
+    
+    std::ifstream config_file(config_path);
+    if (!config_file.is_open()) {
+        std::cerr << "Could not open file.\n";
+        return 1;
+    }
+    
+    // Parse config file into json object
+    nlohmann::json config_json;
+    config_file >> config_json;
 
     // Extract the workload name from the path
     std::size_t pos2 = trace_path.rfind("/");

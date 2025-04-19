@@ -33,14 +33,12 @@
 #include <list>
 #include <queue>
 
-
 #include "bpmodels/tage/tage_scl.h"
 
 // #include "utils/fileutils.h"
 #include "bpmodels/components/counters.h"
 #include "bpmodels/components/cache.h"
 #include "utils/histogram.h"
-
 #include <utils/json.hpp>
 
 namespace LLBP {
@@ -573,6 +571,22 @@ struct LLBPConfig {
 };
 
 
+inline void from_json(const nlohmann::json& input_json, LLBPConfig& conf) {
+    input_json.at("tsclConfig").get_to(conf.tsclConfig);
+    input_json.at("numPatterns").get_to(conf.numPatterns);
+    input_json.at("numContexts").get_to(conf.numContexts);
+    input_json.at("ctxAssoc").get_to(conf.ctxAssoc);
+    input_json.at("ptrnAssoc").get_to(conf.ptrnAssoc);
+    input_json.at("TTWidth").get_to(conf.TTWidth);
+    input_json.at("CTWidth").get_to(conf.CTWidth);
+    input_json.at("pbSize").get_to(conf.pbSize);
+    input_json.at("pbAssoc").get_to(conf.pbAssoc);
+    input_json.at("CtrWidth").get_to(conf.CtrWidth);
+    input_json.at("ReplCtrWidth").get_to(conf.ReplCtrWidth);
+    input_json.at("CtxReplCtrWidth").get_to(conf.CtxReplCtrWidth);
+    input_json.at("simulateTiming").get_to(conf.simulateTiming);
+    input_json.at("accessDelay").get_to(conf.accessDelay);
+}
 
 
 /////////////////////////

@@ -39,6 +39,8 @@
 #include <sstream>
 #include <vector>
 
+#include <utils/json.hpp>
+
 #include "tage.h"
 
 //----------------------
@@ -451,6 +453,13 @@ struct TSCLConfig {
 };
 inline const TSCLConfig TSCL64kCfgDefault = {};
 
+inline void from_json(const nlohmann::json& input_json, TSCLConfig& conf) {
+    input_json.at("tageConfig").get_to(conf.tageConfig);
+    // bool useSC = true;
+    input_json.at("useSC").get_to(conf.useSC);
+    input_json.at("useLoop").get_to(conf.useLoop);
+    input_json.at("LogL").get_to(conf.LogL);
+}
 
 // Configurations
 class TageSCL64k : public TageSCL {
