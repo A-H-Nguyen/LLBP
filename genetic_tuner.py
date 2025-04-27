@@ -98,14 +98,15 @@ def random_individual():
             indiv[param] = random.randint(low, high)
     return indiv
 
-# def run_sim(individual):
-#     """
-#     We evaluate every individual by running all our traces on it.
-#     Every individual gets the same number of warmup and simulation instructions.
+def run_sim(individual):
+    """
+    We evaluate every individual by running all our traces on it.
+    Every individual gets the same number of warmup and simulation instructions.
 
-#     This function returns a dictionary, so that every generation, we can see the
-#     exact MPKI values for each individual (or the best individual).
-#     """
+    This function returns a dictionary, so that every generation, we can see the
+    exact MPKI values for each individual (or the best individual).
+    """
+    pass
 
 def evaluate(individual):
     """
@@ -117,6 +118,15 @@ def evaluate(individual):
     Once we have all the MPKI differencs, we calculate the a weighted average,
     so that differences for larger initial MPKI values have a greater effect
     """
+    with open(args.config, 'r') as f:
+        config = json.load(f)
+        
+    for param in individual:
+        config[param] = individual[param]
+        
+    with open(args.config, "w") as f:
+        json.dump(config, f, indent=2)
+
     weighted_sum = 0.0
     total_weight = 0.0
     # mpki_diff = {trace:0.0 for trace in traces}
