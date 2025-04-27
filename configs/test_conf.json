@@ -1,0 +1,41 @@
+{
+  "tsclConfig": {
+    "tageConfig": {
+      "nhist": 36,
+      "minhist": 6,
+      "maxhist": 3000,
+      "LogG": 10,
+      "LogB": 13,
+      "Tbits": 8,
+      "nbanklow": 10,
+      "nbankhigh": 20,
+      "born": 13,
+      "assoc_start": 9,
+      "assoc_end": 23,
+      "uwidth": 1,
+      "cwidth": 3,
+      "log_size_use_alt": 4,
+      "tage8k": false,
+      "disableInterleaving": false,
+      "overwriteNotUseful": true,
+      "removeAlliasing": false,
+      "tagContext": false
+    },
+    "useSC": true,
+    "useLoop": true,
+    "LogL": 5
+  },
+  "numPatterns": 8,
+  "numContexts": 8192,
+  "ctxAssoc": 2,
+  "ptrnAssoc": 2,
+  "TTWidth": 20,
+  "CTWidth": 20,
+  "pbSize": 256,
+  "pbAssoc": 2,
+  "CtrWidth": 4,
+  "ReplCtrWidth": 17,
+  "CtxReplCtrWidth": 26,
+  "simulateTiming": false,
+  "accessDelay": 7
+}
