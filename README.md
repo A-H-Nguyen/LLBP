@@ -93,6 +93,18 @@ For convenience, the simulator contains a script to run the experiments on all e
 The results in form of a stats file are stored in the `results` directory. Note, the simulator will print out some intermediate results after every 5M instructions which is useful to monitor the progress of the simulation.
 
 
+## Running the genetic tuner
+
+The `genetic_tuner.py` is meant to be similar to executing the default simulator.
+
+**IMPORTANT:** This script *will modify* whatever config JSON you pass into it. *DO NOT* pass in `default_config.json`
+```bash
+python genetic_tuner.py -c configs/test_conf.json -w 1000000 -n 5000000 
+```
+
+There's no need to pass in traces manually, as this script will just use whatever is in the traces directory.
+
+
 ## Plot results
 
 The Jupyter notebook (`./analysis/mpki.ipynb`) can be used to parse the statistics file and plot the branch MPKI for different branch predictor models.

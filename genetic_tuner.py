@@ -7,18 +7,47 @@ import subprocess
 import os
 
 parser = argparse.ArgumentParser()
-parser.add_argument("-c", "--config", type=str, required=True)
-parser.add_argument("-w", "--warmup_instructions", type=int, required=True)
-parser.add_argument("-n", "--simulation_instructions", type=int, required=True)
+parser.add_argument("-c", "--config", type=str, required=True, 
+                    help="Input config JSON file. NOTE: This file will be modified by this script!")
+parser.add_argument("-w", "--warmup_instructions", type=int, required=True, 
+                    help="Number of warmup instructions")
+parser.add_argument("-n", "--simulation_instructions", type=int, required=True, 
+                    help="Number of instructions of the region of interest (ROI)")
+parser.add_argument("-p", "--population", type=int, default=20, required=False, 
+                    help="Number of random configs generated at the beginning of tuning")
+parser.add_argument("-g", "--generations", type=int, default=10, required=False, 
+                    help="Number of iterations that the genetic algorithm will be run for")
+parser.add_argument("-m", "--mutation_rate", type=float, default=0.2, required=False, 
+                    help="Determines how often mutations occur per each generation")
+parser.add_argument("-e", "--number_of_elites", type=int, default=2, required=False, 
+                    help="Determines how many of the best individuals will be kept between generations")
 args = parser.parse_args()
 
 trace_dir="./traces/"
-workloads=["mwnginxfpm-wiki", "dacapo-kafka", "dacapo-tomcat", "dacapo-spring", 
-        "renaissance-finagle-chirper", "renaissance-finagle-http"]
-        # "benchbase-tpcc", 
-        # "benchbase-twitter", "benchbase-wikipedia", "nodeapp-nodeapp", "charlie.1006518", 
-        # "delta.507252", "merced.467915", "whiskey.426708"]
 trace_ext = ".champsim.trace.gz"
+# workloads = ["benchbase-tpcc",
+#              "benchbase-twitter",
+#              "benchbase-wikipedia",
+#              "charlie.1006518",
+#              "dacapo-kafka",
+#              "dacapo-spring",
+#              "dacapo-tomcat",
+#              "mwnginxfpm-wiki",
+#              "nodeapp-nodeapp",
+#              "renaissance-finagle-chirper",
+#              "renaissance-finagle-http"]
+             # These traces failed to install -- will have to try again later:
+             # "delta.507252", 
+             # "merced.467915", 
+             # "whiskey.426708"]
+
+traces = []
+for filename in os.listdir(trace_dir):
+    filepath = os.path.join(trace_dir, filename)
+    if filename.endswith(".gz") and os.path.isfile(filepath):
+        traces.append(filepath)
+
+initial_mpki = {trace:0.0 for trace in traces}
 
 power_of_two_params = ["numPatterns", "numContexts", "ctxAssoc", "ptrnAssoc", "pbSize", "pbAssoc"]
 
@@ -29,7 +58,7 @@ param_def = {
     "ptrnAssoc"       : (1,16),     # default: 4
     "TTWidth"         : (1,32),     # default: 13
     "CTWidth"         : (1,32),     # default: 14
-    "pbSize"          : (16,256),    # default: 64
+    "pbSize"          : (16,256),   # default: 64
     "pbAssoc"         : (1,16),     # default: 4
     "CtrWidth"        : (1,32),     # default: 3
     "ReplCtrWidth"    : (1,32),     # default: 16
@@ -77,9 +106,9 @@ def evaluate(individual):
     with open(args.config, "w") as f:
         json.dump(config, f, indent=2)
 
-    mpki_values = []
-    for workload in workloads:
-        trace = trace_dir + workload + trace_ext
+    # mpki_values = []
+    mpki_diff  = {trace:0.0 for trace in traces}
+    for trace in traces:
         with open("output.log", "w") as logfile:
             result = subprocess.run(["./build/predictor", "-c", args.config, 
                                      "-w", str(args.warmup_instructions), 
@@ -87,14 +116,18 @@ def evaluate(individual):
                                      stdout=logfile, stderr=subprocess.STDOUT, text=True)
 
         new_mpki = get_mpki()
+        print(f"New MPKI for {os.path.basename(trace)}:\t{new_mpki}")
+
         if new_mpki is None:
             # print(f"Simulator failed for trace {trace}\nwith config: {individual}")
-            mpki_values.append(1e6)
+            # mpki_values.append(1e6)
+            mpki_diff[trace] = 1e6
         else:
-            mpki_values.append(new_mpki)
+            # mpki_values.append(new_mpki)
+            mpki_diff[trace] = new_mpki - initial_mpki[trace]
 
-    return sum(mpki_values) / len(mpki_values)
-
+    # return sum(mpki_values) / len(mpki_values)
+    return 
 
 def crossover(parent1, parent2):
     child = {}
@@ -113,7 +146,7 @@ def mutate(individual, mutation_rate=0.1):
                 mutant[param] = random.randint(low, high)
     return mutant
 
-def genetic_algorithm(pop_size=20, generations=50, mutation_rate=0.1, elite_size=2):
+def genetic_algorithm(pop_size, generations, mutation_rate, elite_size):
     # Initialize population
     population = [random_individual() for _ in range(pop_size)]
     
@@ -152,21 +185,29 @@ def genetic_algorithm(pop_size=20, generations=50, mutation_rate=0.1, elite_size
     return best_individual
 
 if __name__ == "__main__":
-    population = 20
-    generations = 10
+    print("=" * 55)
+    print("***Genetic Algorithm parameters***")
+    print(f" - Population size: {args.population} individuals")
+    print(f" - Number of generations: {args.generations}")
+    print(f" - Mutation rate: {args.mutation_rate}")
+    print(f" - Number of elites per generation: {args.number_of_elites}")
+    print("=" * 55)
+    print("Workloads being tested:")
+    for trace in traces:
+        print(os.path.basename(trace))
+    print("=" * 55)
 
-    for workload in workloads:
-        trace = trace_dir + workload + trace_ext
+    for trace in traces:
         with open("output.log", "w") as logfile:
             result = subprocess.run(["./build/predictor", "-c", "configs/default_config.json", 
                                      "-w", str(args.warmup_instructions), 
                                      "-n", str(args.simulation_instructions), trace],
                                      stdout=logfile, stderr=subprocess.STDOUT, text=True)
-        print(f"Default MPKI for {workload}:\t{get_mpki()}")
+        new_mpki = get_mpki()
+        initial_mpki[trace] = new_mpki 
+        print(f"Initial MPKI for {os.path.basename(trace)}:\t{new_mpki}")
     print("=" * 55)
-    print()
 
-    genetic_algorithm(pop_size=population, generations=generations)
-    # output = evaluate(random_individual())
-    # while output is None:
-    #     output = evaluate(random_individual())
+    # genetic_algorithm(pop_size=args.population, generations=args.generations)
+    #                   mutation_rate=args.mutation_rate, elite_size=args.number_of_elites)
+
