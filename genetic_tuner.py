@@ -104,19 +104,8 @@ def run_sim(individual):
     Every individual gets the same number of warmup and simulation instructions.
 
     This function returns a dictionary, so that every generation, we can see the
-    exact MPKI values for each individual (or the best individual).
-    """
-    pass
-
-def evaluate(individual):
-    """
-    After we run the simulator for every trace on an individual, we calculate
-    the percent differences between its new MPKI values, and the baseline.
-    Here, a positive difference means that MPKI *decreased* from the baseline,
-    while a negative difference means that MPKI *increased*.
-
-    Once we have all the MPKI differencs, we calculate the a weighted average,
-    so that differences for larger initial MPKI values have a greater effect
+    exact MPKI values for each individual (or the best individual). We also calculate
+    the percent difference from the initial values for every MPKI we gather here.
     """
     with open(args.config, 'r') as f:
         config = json.load(f)
@@ -127,9 +116,7 @@ def evaluate(individual):
     with open(args.config, "w") as f:
         json.dump(config, f, indent=2)
 
-    weighted_sum = 0.0
-    total_weight = 0.0
-    # mpki_diff = {trace:0.0 for trace in traces}
+    mpki = {trace:(0.0,0.0) for trace in traces}
     for trace in traces:
         with open("output.log", "w") as logfile:
             result = subprocess.run(["./build/predictor", "-c", args.config, 
@@ -137,25 +124,43 @@ def evaluate(individual):
                                      "-n", str(args.simulation_instructions), trace],
                                      stdout=logfile, stderr=subprocess.STDOUT, text=True)
         new_mpki = get_mpki()
+
         if args.debug:
-            print(f"New MPKI for {os.path.basename(trace)}:\t{new_mpki}")
+            print(f"New MPKI for {os.path.basename(trace)}:\t{new_mpki}\n")
 
+        # If the simulator fails, we penalize this individual by assigning it a massive MPKI
         if new_mpki is None:
-            # If the simulator fails, we penalize this individual by assigning it a massive
-            # increase in MPKI
-            # mpki_diff[trace] = -1e4
-            weighted_sum += -1000.0 
-            total_weight += 1.0 # to avoid divide by zero
+            new_mpki = 1e4
             if args.debug:
-                print(f"Simulator failed for trace {trace}, with config: {individual}")
-        else:
-            # mpki_diff[trace] = initial_mpki[trace] - new_mpki
-            baseline = initial_mpki[trace]
-            improvement = ((baseline - new_mpki) / baseline) * 100.0 # percent difference
+                print(f"Simulator failed for trace {trace}, with config: {individual}\n")
 
-            weight = baseline  # traces with higher baseline MPKI get bigger influence
-            weighted_sum += improvement * weight
-            total_weight += weight
+        mpki[trace] = new_mpki
+
+    return mpki
+
+def evaluate(sim_out):
+    """
+    After we run the simulator for every trace on an individual, we calculate
+    the percent differences between its new MPKI values, and the baseline.
+    Here, a positive difference means that MPKI *decreased* from the baseline,
+    while a negative difference means that MPKI *increased*.
+
+    Once we have all the MPKI differencs, we calculate the a weighted average,
+    so that differences for larger initial MPKI values have a greater effect
+    """
+    weighted_sum = 0.0
+    total_weight = 0.0
+
+    for trace,mpki in sim_out.items():
+        baseline = initial_mpki[trace]
+        improvement = ((baseline - mpki) / baseline) * 100.0 # percent difference
+
+        if args.debug:
+            print(f" - {os.path.basename(trace)}:\t{improvement }% diff")
+
+        weight = baseline  # traces with higher baseline MPKI get bigger influence
+        weighted_sum += improvement * weight
+        total_weight += weight
 
     weighted_average_improvement = weighted_sum / total_weight
     return -weighted_average_improvement  # return a negative value because GA minimizes
@@ -179,41 +184,64 @@ def mutate(individual, mutation_rate=0.1):
 
 def genetic_algorithm(pop_size, generations, mutation_rate, elite_size):
     # Initialize population
-    population = [random_individual() for _ in range(pop_size)]
+    population = {f"gen0_indiv{i}":random_individual() for i in range(pop_size)}
     
-    for gen in range(generations):
+    for gen in range(1,generations+1):
+        # Generate sim results for all individuals
+        mpki_out = {indiv_name:run_sim(indiv_conf) for indiv_name,indiv_conf in population.items()}
+
         # Evaluate all individuals
-        scored_population = [(evaluate(indiv), indiv) for indiv in population]
-        for i in range(pop_size):
-            while scored_population[i][0] is None:
-                population[i] = random_individual()
-                scored_population[i] = evaluate(population[i]), population[i]
+        scored_population = {indiv_name:evaluate(sim_out) for indiv_name,sim_out in mpki_out.items()}
 
-        scored_population.sort(key=lambda x: x[0])  # Sort by MPKI (lower is better)
+        # Sort by difference in MPKI -- lower is better, with negative values meaning improvement
+        # in MPKI overall.
+        sorted_indivs = sorted(scored_population, key=lambda name: scored_population[name])
 
-        print(f"Generation {gen}: Best MPKI = {scored_population[0][0]}")
+        best_indiv = sorted_indivs[0]
 
-        # Select elites
-        elites = [indiv for _, indiv in scored_population[:elite_size]]
+        print(f"\n*** Generation {gen} ***\n")
+        print(f"Best Config - {best_indiv }:\n{population[best_indiv]}\n")
+        for trace,mpki in mpki_out[best_indiv].items():
+            print(f" - {os.path.basename(trace)}:\t{mpki} MPKI")
+        print(f"\nOverall improvement: {scored_population[best_indiv]}\n")
 
-        # New population
-        new_population = elites.copy()
-        while len(new_population) < pop_size:
-            parent1 = random.choice(elites)
-            parent2 = random.choice(population)  # Can crossover with any
+        elite_names = sorted_indivs[:elite_size]
+        elite_population = {name: population[name] for name in elite_names}
+
+        next_population = {}
+        for name, config in elite_population.items():
+            next_population[name] = config
+
+        while len(next_population) < pop_size:
+            # Assign a new name for the child
+            child_id = f"gen{gen}_indiv{len(next_population)}"
+
+            # Randomly select parents from the elites
+            parent1_name = random.choice(list(elite_population.keys()))
+            parent2_name = random.choice(list(elite_population.keys()))
+            
+            parent1 = elite_population[parent1_name]
+            parent2 = elite_population[parent2_name]
+
             child = crossover(parent1, parent2)
             child = mutate(child, mutation_rate)
-            new_population.append(child)
 
-        population = new_population
+            next_population[child_id] = child
+
+        population = next_population
 
     # Final evaluation
-    final_scored_population = [(evaluate(indiv), indiv) for indiv in population]
-    final_scored_population.sort(key=lambda x: x[0])
+    final_mpki_out = {indiv_name:run_sim(indiv_conf) for indiv_name,indiv_conf in population.items()}
+    final_scored_population = {indiv_name:evaluate(sim_out) for indiv_name,sim_out in mpki_out.items()}
+    final_sorted_indivs = sorted(final_scored_population , key=lambda name: final_scored_population[name])
+    final_best_indiv = final_sorted_indivs[0]
 
-    best_mpki, best_individual = final_scored_population[0]
-    print(f"Best individual after {generations} generations:\n{best_individual}\nwith MPKI {best_mpki}")
-    return best_individual
+    print(f"\n*** Best individual after {generations} generations ***\n")
+    print(f"Final conf: {final_best_indiv}\n{population[final_best_indiv]}\n")
+    for trace,mpki in final_mpki_out[final_best_indiv].items():
+        print(f" - {os.path.basename(trace)}:\t{mpki} MPKI")
+    print(f"\nOverall improvement: {final_scored_population[final_best_indiv]}\n")
+
 
 if __name__ == "__main__":
 
@@ -229,7 +257,7 @@ if __name__ == "__main__":
 
     print("*** Workloads being tested ***\n")
     for trace in traces:
-        print(os.path.basename(trace))
+        print(" -", os.path.basename(trace))
 
     print("=" * 55, "\n")
 
@@ -245,6 +273,12 @@ if __name__ == "__main__":
         print(f" - {os.path.basename(trace)}:\t{new_mpki}")
 
     print("=" * 55, "\n")
+
+    # test_indiv = random_individual()
+    # print("Testing config:", test_indiv)
+    # sim_out = run_sim(test_indiv )
+    # print()
+    # print(evaluate(sim_out))
 
     genetic_algorithm(pop_size=args.population, generations=args.generations,
                       mutation_rate=args.mutation_rate, elite_size=args.number_of_elites)
