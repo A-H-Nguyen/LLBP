@@ -99,10 +99,16 @@ The `genetic_tuner.py` is meant to be similar to executing the default simulator
 
 **IMPORTANT:** This script *will modify* whatever config JSON you pass into it. *DO NOT* pass in `default_config.json`
 ```bash
-python genetic_tuner.py -c configs/test_conf.json -w 1000000 -n 5000000 
+python genetic_tuner.py -c configs/test_conf.json -w 1000000 -n 2000000 
 ```
 
 There's no need to pass in traces manually, as this script will just use whatever is in the traces directory.
+
+In order to output the results to a file, I like to use the `tee` command:
+```bash
+python -u genetic_tuner.py -c configs/test_conf.json -w 100000000 -n 200000000 -p 20 -g 10 -m 0.2 -e 10 2>&1 | tee out_file.txt
+```
+
 
 
 ## Plot results
