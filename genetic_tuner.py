@@ -237,7 +237,7 @@ def genetic_algorithm(pop_size, generations, mutation_rate, elite_size):
     for trace,mpki in final_mpki_out[final_best_indiv].items():
         print(f" - {os.path.basename(trace)}:\t{mpki} MPKI")
     print(f"\nOverall improvement: {final_scored_population[final_best_indiv]}\n")
-    print(f"Final Eval took {final_eval_start - final_eval_end} seconds\n")
+    print(f"Final Eval took {final_eval_end - final_eval_start} seconds\n")
 
 
 if __name__ == "__main__":
@@ -285,8 +285,8 @@ if __name__ == "__main__":
                       mutation_rate=args.mutation_rate, elite_size=args.number_of_elites)
     gen_alg_end = time.perf_counter()
 
+    print(f"In total, genetic algorithm took {gen_alg_end - gen_alg_start} seconds\n")
     print("=" * 55, "\n")
-    print(f"In total, genetic algorithm took {gen_alg_start - gen_alg_end} seconds\n")
 
     print(f"*** Evaluating final config ***\n") 
     eval_start = time.perf_counter()
@@ -307,5 +307,5 @@ if __name__ == "__main__":
         test_out = get_mpki()
         print(f" - {os.path.basename(trace)}:\tDefault Conf: {baseline}\tTest Conf: {test_out}")
     eval_end = time.perf_counter()
-    print(f"\nFinal evaluation took {eval_end - eval_start} seconds\n")
+    print(f"\nNew config evaluation took {eval_end - eval_start} seconds\n")
 
