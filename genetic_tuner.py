@@ -5,6 +5,7 @@ import copy
 import re
 import subprocess
 import os
+import time
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-c", "--config", type=str, required=True, 
@@ -187,6 +188,7 @@ def genetic_algorithm(pop_size, generations, mutation_rate, elite_size):
     population = {f"gen0_indiv{i}":random_individual() for i in range(pop_size)}
     
     for gen in range(1,generations+1):
+        gen_start = time.perf_counter()
         # Generate sim results for all individuals
         mpki_out = {indiv_name:run_sim(indiv_conf) for indiv_name,indiv_conf in population.items()}
 
@@ -229,18 +231,23 @@ def genetic_algorithm(pop_size, generations, mutation_rate, elite_size):
             next_population[child_id] = child
 
         population = next_population
+        gen_end = time.perf_counter()
+        print(f"Generation {gen} took {gen_end - gen_start} seconds\n")
 
     # Final evaluation
+    final_eval_start = time.perf_counter()
     final_mpki_out = {indiv_name:run_sim(indiv_conf) for indiv_name,indiv_conf in population.items()}
     final_scored_population = {indiv_name:evaluate(sim_out) for indiv_name,sim_out in mpki_out.items()}
     final_sorted_indivs = sorted(final_scored_population , key=lambda name: final_scored_population[name])
     final_best_indiv = final_sorted_indivs[0]
+    final_eval_end = time.perf_counter()
 
     print(f"\n*** Best individual after {generations} generations ***\n")
     print(f"Final conf: {final_best_indiv}\n{population[final_best_indiv]}\n")
     for trace,mpki in final_mpki_out[final_best_indiv].items():
         print(f" - {os.path.basename(trace)}:\t{mpki} MPKI")
     print(f"\nOverall improvement: {final_scored_population[final_best_indiv]}\n")
+    print(f"Final Eval took {final_eval_start - final_eval_end} seconds\n")
 
 
 if __name__ == "__main__":
@@ -255,9 +262,12 @@ if __name__ == "__main__":
 
     print("=" * 55, "\n")
 
-    print("*** Workloads being tested ***\n")
+    print("*** Simulation parameters ***\n")
+    print(f" - Num warmup instructions: {args.warmup_instructions}")
+    print(f" - Num simulation instructions: {args.simulation_instructions}")
+    print( " - Workloads being tested:")
     for trace in traces:
-        print(" -", os.path.basename(trace))
+        print("   -", os.path.basename(trace))
 
     print("=" * 55, "\n")
 
@@ -280,6 +290,11 @@ if __name__ == "__main__":
     # print()
     # print(evaluate(sim_out))
 
+    gen_alg_start = time.perf_counter()
     genetic_algorithm(pop_size=args.population, generations=args.generations,
                       mutation_rate=args.mutation_rate, elite_size=args.number_of_elites)
+    gen_alg_end = time.perf_counter()
+
+    print("=" * 55, "\n")
+    print(f"In total, genetic algorithm took {gen_alg_start - gen_alg_end} seconds")
 
