@@ -27,27 +27,17 @@ args = parser.parse_args()
 
 trace_dir="./traces/"
 trace_ext = ".champsim.trace.gz"
-# workloads = ["benchbase-tpcc",
-#              "benchbase-twitter",
-#              "benchbase-wikipedia",
-#              "charlie.1006518",
-#              "dacapo-kafka",
-#              "dacapo-spring",
-#              "dacapo-tomcat",
-#              "mwnginxfpm-wiki",
-#              "nodeapp-nodeapp",
-#              "renaissance-finagle-chirper",
-#              "renaissance-finagle-http"]
-             # These traces failed to install -- will have to try again later:
-             # "delta.507252", 
-             # "merced.467915", 
-             # "whiskey.426708"]
+training_workloads = ["benchbase-tpcc", "benchbase-twitter", "benchbase-wikipedia",
+                      "charlie.1006518", "dacapo-kafka", "dacapo-spring", "dacapo-tomcat",
+                      "mwnginxfpm-wiki", "renaissance-finagle-chirper", "renaissance-finagle-http"]
+testing_workloads = ["nodeapp-nodeapp", "delta.507252", "merced.467915", "whiskey.426708"]
 
-traces = []
-for filename in os.listdir(trace_dir):
-    filepath = os.path.join(trace_dir, filename)
-    if filename.endswith(".gz") and os.path.isfile(filepath):
-        traces.append(filepath)
+# traces = []
+# for filename in os.listdir(trace_dir):
+#     filepath = os.path.join(trace_dir, filename)
+#     if filename.endswith(".gz") and os.path.isfile(filepath):
+#         traces.append(filepath)
+traces = [trace_dir + workload + trace_ext for workload in training_workloads]
 
 initial_mpki = {trace:0.0 for trace in traces}
 
@@ -296,5 +286,26 @@ if __name__ == "__main__":
     gen_alg_end = time.perf_counter()
 
     print("=" * 55, "\n")
-    print(f"In total, genetic algorithm took {gen_alg_start - gen_alg_end} seconds")
+    print(f"In total, genetic algorithm took {gen_alg_start - gen_alg_end} seconds\n")
+
+    print(f"*** Evaluating final config ***\n") 
+    eval_start = time.perf_counter()
+    test_traces = [trace_dir + workload + trace_ext for workload in testing_workloads]
+    for trace in test_traces:
+        with open("output.log", "w") as logfile:
+            result = subprocess.run(["./build/predictor", "-c", "configs/default_config.json", 
+                                     "-w", str(args.warmup_instructions), 
+                                     "-n", str(args.simulation_instructions), trace],
+                                     stdout=logfile, stderr=subprocess.STDOUT, text=True)
+        baseline = get_mpki()
+
+        with open("output.log", "w") as logfile:
+            result = subprocess.run(["./build/predictor", "-c", args.config, 
+                                     "-w", str(args.warmup_instructions), 
+                                     "-n", str(args.simulation_instructions), trace],
+                                     stdout=logfile, stderr=subprocess.STDOUT, text=True)
+        test_out = get_mpki()
+        print(f" - {os.path.basename(trace)}:\tDefault Conf: {baseline}\tTest Conf: {test_out}")
+    eval_end = time.perf_counter()
+    print(f"\nFinal evaluation took {eval_end - eval_start} seconds\n")
 
