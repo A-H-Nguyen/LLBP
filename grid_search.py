@@ -5,6 +5,8 @@ import copy
 import re
 import subprocess
 import os
+import itertools
+import math
 import time
 
 parser = argparse.ArgumentParser()
@@ -18,6 +20,9 @@ parser.add_argument("--limit", type=int, required=True,
                     help="Max number of algorithm iterations")
 # parser.add_argument("--debug", action='store_true', help="Print debugging info")
 args = parser.parse_args()
+
+with open("output/baseline_mpki.json", "r") as f:
+    initial_mpki = json.load(f)
 
 trace_dir="./traces/"
 trace_ext = ".champsim.trace.gz"
@@ -40,30 +45,36 @@ testing_workloads = [
         "renaissance-finagle-chirper"
         ]
 
-baseline_mpki = {
-        "nodeapp-nodeapp": 4.3452,
-        "dacapo-spring": 3.6435,
-        "delta.507252": 1.1535,
-        "renaissance-finagle-chirper": 0.4979
-        }
-traces = [trace_dir + workload + trace_ext for workload in training_workloads]
-
-initial_mpki = {trace:0.0 for trace in traces}
+train_traces = [trace_dir + workload + trace_ext for workload in training_workloads]
 
 power_of_two_params = ["numPatterns", "numContexts", "ctxAssoc", "ptrnAssoc", "pbSize", "pbAssoc"]
 
 param_def = {
-    "numPatterns"     : (4,64),     # default: 16
-    "numContexts"     : (1024,8192),# default: 4096
-    "ctxAssoc"        : (1,16),     # default: 8
-    "ptrnAssoc"       : (1,16),     # default: 4
-    "TTWidth"         : (1,32),     # default: 13
-    "CTWidth"         : (1,32),     # default: 14
-    "pbSize"          : (16,256),   # default: 64
-    "pbAssoc"         : (1,16),     # default: 4
-    "CtrWidth"        : (1,32),     # default: 3
-    "ReplCtrWidth"    : (1,32),     # default: 16
-    "CtxReplCtrWidth" : (1,32),     # default: 2
+    "numPatterns"     : [2**i for i in range(2,9)],  # default: 16
+    "numContexts"     : [2**i for i in range(10,14)],# default: 4096
+    "ctxAssoc"        : [2**i for i in range(1,5)],  # default: 8
+    "ptrnAssoc"       : [2**i for i in range(1,5)],  # default: 4
+    "TTWidth"         : [i for i in range(10,15)],   # default: 13
+    "CTWidth"         : [i for i in range(10,15)],   # default: 14
+    "pbSize"          : [2**i for i in range(4,8)],  # default: 64
+    "pbAssoc"         : [2**i for i in range(0,5)],  # default: 4
+    "CtrWidth"        : [i for i in range(1,6)],     # default: 3
+    "ReplCtrWidth"    : [2**i for i in range(0,6)],  # default: 16
+    "CtxReplCtrWidth" : [2**i for i in range(0,6)]   # default: 2
+}
+
+default_conf = {
+    "numPatterns"     : 16,
+    "numContexts"     : 4096,
+    "ctxAssoc"        : 8,
+    "ptrnAssoc"       : 4,
+    "TTWidth"         : 13,
+    "CTWidth"         : 14,
+    "pbSize"          : 64,
+    "pbAssoc"         : 4,
+    "CtrWidth"        : 3,
+    "ReplCtrWidth"    : 16,
+    "CtxReplCtrWidth" : 2
 }
 
 def get_mpki():
@@ -84,8 +95,7 @@ def run_sim(individual):
     Every individual gets the same number of warmup and simulation instructions.
 
     This function returns a dictionary, so that every generation, we can see the
-    exact MPKI values for each individual (or the best individual). We also calculate
-    the percent difference from the initial values for every MPKI we gather here.
+    exact MPKI values for each individual (or the best individual). 
     """
     with open(args.config, 'r') as f:
         config = json.load(f)
@@ -96,8 +106,8 @@ def run_sim(individual):
     with open(args.config, "w") as f:
         json.dump(config, f, indent=2)
 
-    mpki = {trace:(0.0,0.0) for trace in traces}
-    for trace in traces:
+    mpki = {trace:(0.0,0.0) for trace in train_traces}
+    for trace in train_traces:
         with open("output.log", "w") as logfile:
             result = subprocess.run(["./build/predictor", "-c", args.config, 
                                      "-w", str(args.warmup_instructions), 
@@ -118,36 +128,28 @@ def run_sim(individual):
 
     return mpki
 
-# def evaluate(sim_out):
-#     """
-#     After we run the simulator for every trace on an individual, we calculate
-#     the percent differences between its new MPKI values, and the baseline.
-#     Here, a positive difference means that MPKI *decreased* from the baseline,
-#     while a negative difference means that MPKI *increased*.
+def evaluate(sim_out):
+    weighted_sum = 0.0
+    total_weight = 0.0
 
-#     Once we have all the MPKI differencs, we calculate the a weighted average,
-#     so that differences for larger initial MPKI values have a greater effect
-#     """
-#     weighted_sum = 0.0
-#     total_weight = 0.0
+    for trace,mpki in sim_out.items():
+        baseline = initial_mpki[trace]
+        improvement = ((baseline - mpki) / baseline) * 100.0 # percent difference
 
-#     for trace,mpki in sim_out.items():
-#         baseline = initial_mpki[trace]
-#         improvement = ((baseline - mpki) / baseline) * 100.0 # percent difference
+        if args.debug:
+            print(f" - {os.path.basename(trace)}:\t{improvement }% diff")
 
-#         if args.debug:
-#             print(f" - {os.path.basename(trace)}:\t{improvement }% diff")
+        weight = baseline  # traces with higher baseline MPKI get bigger influence
+        weighted_sum += improvement * weight
+        total_weight += weight
 
-#         weight = baseline  # traces with higher baseline MPKI get bigger influence
-#         weighted_sum += improvement * weight
-#         total_weight += weight
-
-#     weighted_average_improvement = weighted_sum / total_weight
-#     return -weighted_average_improvement  # return a negative value because GA minimizes
+    weighted_average_improvement = weighted_sum / total_weight
+    return weighted_average_improvement 
 
 
 
 if __name__ == "__main__":
+    random.seed(0)
 
     print("=" * 55, "\n")
 
@@ -155,45 +157,79 @@ if __name__ == "__main__":
     print(f" - Num warmup instructions: {args.warmup_instructions}")
     print(f" - Num simulation instructions: {args.simulation_instructions}")
     print( " - Workloads used for training:")
-    for trace in traces:
+    for trace in train_traces:
         print("   -", os.path.basename(trace))
 
     print("=" * 55, "\n")
 
-    iter = 0
-    while iter <
 
-    print(f"*** Evaluating final config ***\n") 
+    # Generate all combinations
+    keys, values = zip(*param_def.items())
+    grid = [dict(zip(keys, v)) for v in itertools.product(*values)]
+    num_configs = len(grid)
 
-    EVAL_WARMUP = 100000000
-    EVAL_SIM    = 200000000
-    test_traces = [trace_dir + workload + trace_ext for workload in testing_workloads]
+    print(f"{num_configs} configurations in testing set")
+    print(f"Evaluate {args.limit} of them")
 
-    print(f" - Num warmup instructions: {EVAL_WARMUP}")
-    print(f" - Num simulation instructions: {EVAL_SIM}")
-    print( " - Workloads used for testing:")
-    for trace in test_traces:
-        print("   -", os.path.basename(trace))
+    best_conf = default_conf.copy()
+    best_conf_train_results = {}
+    test_conf = {}
+    best_mpki_improvement = 0.0
+    iteration_num = 0
 
-    eval_start = time.perf_counter()
-    for trace in test_traces:
-        with open("output.log", "w") as logfile:
-            result = subprocess.run(["./build/predictor", "-c", "configs/default_config.json", 
-                                     "-w", str(EVAL_WARMUP), 
-                                     "-n", str(args.simulation_instructions), trace],
-                                     stdout=logfile, stderr=subprocess.STDOUT, text=True)
-        baseline = get_mpki()
+    print("ITERATION NUMBER,MPKI IMPROVEMENT,BEST IMPROVEMENT")
 
-        with open("output.log", "w") as logfile:
-            result = subprocess.run(["./build/predictor", "-c", args.config, 
-                                     "-w", str(args.warmup_instructions), 
-                                     "-n", str(args.simulation_instructions), trace],
-                                     stdout=logfile, stderr=subprocess.STDOUT, text=True)
-        test_out = get_mpki()
+    while iteration_num < args.limit:
+        random.randint(0,num_configs)
+        test_conf = grid.copy()
+        sim_out = run_sim(test_conf)
+        eval_out = evaluate(sim_out)
 
-        print(f" - {os.path.basename(trace)}:\tDefault Conf MPKI: {baseline}\tTest Conf MPKI: {test_out}")
 
-    eval_end = time.perf_counter()
+        if eval_out > best_mpki_improvement:
+            best_mpki_improvement = eval_out
+            best_conf = test_conf.copy()
+            best_conf_train_results = sim_out.copy()
 
-    print(f"\nNew config evaluation took {eval_end - eval_start} seconds\n")
+            print("New best conf:")
+            print(best_conf)
+            print("New best train results:")
+            print(best_conf_train_results)
+
+        iteration_num += 1
+        print(f"{iteration_num},{eval_out},{best_mpki_improvement}")
+
+    # print(f"*** Evaluating final config ***\n") 
+
+    # EVAL_WARMUP = 100000000
+    # EVAL_SIM    = 200000000
+    # test_traces = [trace_dir + workload + trace_ext for workload in testing_workloads]
+
+    # print(f" - Num warmup instructions: {EVAL_WARMUP}")
+    # print(f" - Num simulation instructions: {EVAL_SIM}")
+    # print( " - Workloads used for testing:")
+    # for trace in test_traces:
+    #     print("   -", os.path.basename(trace))
+
+    # eval_start = time.perf_counter()
+    # for trace in test_traces:
+    #     with open("output.log", "w") as logfile:
+    #         result = subprocess.run(["./build/predictor", "-c", "configs/default_config.json", 
+    #                                  "-w", str(EVAL_WARMUP), 
+    #                                  "-n", str(args.simulation_instructions), trace],
+    #                                  stdout=logfile, stderr=subprocess.STDOUT, text=True)
+    #     baseline = get_mpki()
+
+    #     with open("output.log", "w") as logfile:
+    #         result = subprocess.run(["./build/predictor", "-c", args.config, 
+    #                                  "-w", str(args.warmup_instructions), 
+    #                                  "-n", str(args.simulation_instructions), trace],
+    #                                  stdout=logfile, stderr=subprocess.STDOUT, text=True)
+    #     test_out = get_mpki()
+
+    #     print(f" - {os.path.basename(trace)}:\tDefault Conf MPKI: {baseline}\tTest Conf MPKI: {test_out}")
+
+    # eval_end = time.perf_counter()
+
+    # print(f"\nNew config evaluation took {eval_end - eval_start} seconds\n")
 
