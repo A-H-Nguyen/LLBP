@@ -17,6 +17,7 @@ args = parser.parse_args()
 
 trace_dir="./traces/"
 trace_ext = ".champsim.trace.gz"
+
 training_workloads = [
         "benchbase-tpcc", 
         "benchbase-twitter", 
@@ -29,15 +30,13 @@ training_workloads = [
         "merced.467915", 
         "whiskey.426708"
         ]
+
 testing_workloads = [
         "nodeapp-nodeapp", 
         "dacapo-spring", 
         "delta.507252", 
         "renaissance-finagle-chirper"
         ]
-
-
-
 
 param_def = {
     "numPatterns"     : (4,64),     # default: 16

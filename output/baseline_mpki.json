@@ -1,0 +1,16 @@
+{
+    "./traces/benchbase-tpcc.champsim.trace.gz": 1.128, 
+    "./traces/benchbase-twitter.champsim.trace.gz": 0.785, 
+    "./traces/benchbase-wikipedia.champsim.trace.gz": 1.287, 
+    "./traces/charlie.1006518.champsim.trace.gz": 3.364, 
+    "./traces/dacapo-kafka.champsim.trace.gz": 0.294, 
+    "./traces/dacapo-tomcat.champsim.trace.gz": 2.878, 
+    "./traces/mwnginxfpm-wiki.champsim.trace.gz": 3.253, 
+    "./traces/renaissance-finagle-http.champsim.trace.gz": 6.297, 
+    "./traces/merced.467915.champsim.trace.gz": 3.259, 
+    "./traces/whiskey.426708.champsim.trace.gz": 1.667,
+    "./traces/nodeapp-nodeapp.champsim.trace.gz": 4.3452,
+    "./traces/dacapo-spring.champsim.trace.gz": 3.6435,
+    "./traces/delta.507252.champsim.trace.gz": 1.1535,
+    "./traces/renaissance-finagle-chirper.champsim.trace.gz": 0.4979
+}
