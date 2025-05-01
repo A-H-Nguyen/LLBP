@@ -27,10 +27,24 @@ args = parser.parse_args()
 
 trace_dir="./traces/"
 trace_ext = ".champsim.trace.gz"
-training_workloads = ["benchbase-tpcc", "benchbase-twitter", "benchbase-wikipedia",
-                      "charlie.1006518", "dacapo-kafka", "dacapo-spring", "dacapo-tomcat",
-                      "mwnginxfpm-wiki", "renaissance-finagle-chirper", "renaissance-finagle-http"]
-testing_workloads = ["nodeapp-nodeapp", "delta.507252", "merced.467915", "whiskey.426708"]
+training_workloads = [
+        "benchbase-tpcc", 
+        "benchbase-twitter", 
+        "benchbase-wikipedia",
+        "charlie.1006518", 
+        "dacapo-kafka", 
+        "dacapo-tomcat",
+        "mwnginxfpm-wiki", 
+        "renaissance-finagle-http",
+        "merced.467915", 
+        "whiskey.426708"
+        ]
+testing_workloads = [
+        "nodeapp-nodeapp", 
+        "dacapo-spring", 
+        "delta.507252", 
+        "renaissance-finagle-chirper"
+        ]
 
 # traces = []
 # for filename in os.listdir(trace_dir):
@@ -55,7 +69,6 @@ param_def = {
     "CtrWidth"        : (1,32),     # default: 3
     "ReplCtrWidth"    : (1,32),     # default: 16
     "CtxReplCtrWidth" : (1,32),     # default: 2
-    "accessDelay"     : (1,32)      # default: 5
 }
 
 def get_mpki():
@@ -255,30 +268,11 @@ if __name__ == "__main__":
     print("*** Simulation parameters ***\n")
     print(f" - Num warmup instructions: {args.warmup_instructions}")
     print(f" - Num simulation instructions: {args.simulation_instructions}")
-    print( " - Workloads being tested:")
+    print( " - Workloads used for training:")
     for trace in traces:
         print("   -", os.path.basename(trace))
 
     print("=" * 55, "\n")
-
-    print("*** Initial MPKI values ***\n")
-    for trace in traces:
-        with open("output.log", "w") as logfile:
-            result = subprocess.run(["./build/predictor", "-c", "configs/default_config.json", 
-                                     "-w", str(args.warmup_instructions), 
-                                     "-n", str(args.simulation_instructions), trace],
-                                     stdout=logfile, stderr=subprocess.STDOUT, text=True)
-        new_mpki = get_mpki()
-        initial_mpki[trace] = new_mpki 
-        print(f" - {os.path.basename(trace)}:\t{new_mpki}")
-
-    print("=" * 55, "\n")
-
-    # test_indiv = random_individual()
-    # print("Testing config:", test_indiv)
-    # sim_out = run_sim(test_indiv )
-    # print()
-    # print(evaluate(sim_out))
 
     gen_alg_start = time.perf_counter()
     genetic_algorithm(pop_size=args.population, generations=args.generations,
@@ -289,12 +283,22 @@ if __name__ == "__main__":
     print("=" * 55, "\n")
 
     print(f"*** Evaluating final config ***\n") 
-    eval_start = time.perf_counter()
+
+    EVAL_WARMUP = 100000000
+    EVAL_SIM    = 200000000
     test_traces = [trace_dir + workload + trace_ext for workload in testing_workloads]
+
+    print(f" - Num warmup instructions: {EVAL_WARMUP}")
+    print(f" - Num simulation instructions: {EVAL_SIM}")
+    print( " - Workloads used for testing:")
+    for trace in test_traces:
+        print("   -", os.path.basename(trace))
+
+    eval_start = time.perf_counter()
     for trace in test_traces:
         with open("output.log", "w") as logfile:
             result = subprocess.run(["./build/predictor", "-c", "configs/default_config.json", 
-                                     "-w", str(args.warmup_instructions), 
+                                     "-w", str(EVAL_WARMUP), 
                                      "-n", str(args.simulation_instructions), trace],
                                      stdout=logfile, stderr=subprocess.STDOUT, text=True)
         baseline = get_mpki()
@@ -305,7 +309,10 @@ if __name__ == "__main__":
                                      "-n", str(args.simulation_instructions), trace],
                                      stdout=logfile, stderr=subprocess.STDOUT, text=True)
         test_out = get_mpki()
-        print(f" - {os.path.basename(trace)}:\tDefault Conf: {baseline}\tTest Conf: {test_out}")
+
+        print(f" - {os.path.basename(trace)}:\tDefault Conf MPKI: {baseline}\tTest Conf MPKI: {test_out}")
+
     eval_end = time.perf_counter()
+
     print(f"\nNew config evaluation took {eval_end - eval_start} seconds\n")
 
