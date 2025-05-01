@@ -18,7 +18,7 @@ parser.add_argument("-n", "--simulation_instructions", type=int, required=True,
                     help="Number of instructions of the region of interest (ROI)")
 parser.add_argument("--limit", type=int, required=True, 
                     help="Max number of algorithm iterations")
-# parser.add_argument("--debug", action='store_true', help="Print debugging info")
+parser.add_argument("--debug", action='store_true', help="Print debugging info")
 args = parser.parse_args()
 
 with open("output/baseline_mpki.json", "r") as f:
@@ -151,24 +151,40 @@ def evaluate(sim_out):
 if __name__ == "__main__":
     random.seed(0)
 
-    print("=" * 55, "\n")
-
-    print("*** Simulation parameters ***\n")
-    print(f" - Num warmup instructions: {args.warmup_instructions}")
-    print(f" - Num simulation instructions: {args.simulation_instructions}")
-    print( " - Workloads used for training:")
-    for trace in train_traces:
-        print("   -", os.path.basename(trace))
-
-    print("=" * 55, "\n")
-
-    # Generate all combinations
+    # Generate search space
     keys, values = zip(*param_def.items())
     grid = [dict(zip(keys, v)) for v in itertools.product(*values)]
     num_configs = len(grid)
 
-    print(f"*** {num_configs} configurations in testing set")
-    print(f"*** Evaluate {args.limit} of them\n")
+    # Reset output files
+    with open("output/grid_search_dump.log", "w") as f:
+        print("=" * 55, "\n")
+        print("*** Simulation parameters ***\n")
+        print(f" - Num warmup instructions: {args.warmup_instructions}")
+        print(f" - Num simulation instructions: {args.simulation_instructions}")
+        print( " - Workloads used for training:")
+        f.write("=" * 55)
+        f.write("\n")
+        f.write("*** Simulation parameters ***\n")
+        f.write(f" - Num warmup instructions: {args.warmup_instructions}\n")
+        f.write(f" - Num simulation instructions: {args.simulation_instructions}\n")
+        f.write( " - Workloads used for training:\n")
+        for trace in train_traces:
+            print("   -", os.path.basename(trace))
+            f.write(f"   - {os.path.basename(trace)}\n")
+
+        print("=" * 55, "\n")
+        f.write("=" * 55)
+        f.write("\n")
+
+        print(f"*** {num_configs} configurations in testing set")
+        print(f"*** Evaluate {args.limit} of them\n")
+        f.write(f"*** {num_configs} configurations in testing set\n")
+        f.write(f"*** Evaluate {args.limit} of them\n")
+
+    with open("output/grid_search_iterations.csv", "w") as f:
+        f.write("ITERATION NUMBER,MPKI IMPROVEMENT,BEST IMPROVEMENT,RUNTIME(sec)\n")
+        print("ITERATION NUMBER,MPKI IMPROVEMENT,BEST IMPROVEMENT,RUNTIME(sec)")
 
     best_conf = default_conf.copy()
     best_conf_train_results = {}
@@ -176,11 +192,12 @@ if __name__ == "__main__":
     best_eval = 0.0
     iter_num = 0
 
-    print("ITERATION NUMBER,MPKI IMPROVEMENT,BEST IMPROVEMENT,RUNTIME(sec)")
+    iter_file = open("output/grid_search_iterations.csv", "a")
+    dump_file = open("output/grid_search_dump.log", "a")
 
     while iter_num < args.limit:
         start_time = time.perf_counter()
-        test_conf = grid.pop(random.randint(0,len(grid)-1)).copy()
+        test_conf = grid.pop(random.randint(0,num_configs-1)).copy()
         sim_out = run_sim(test_conf)
         new_eval = evaluate(sim_out)
 
@@ -189,13 +206,24 @@ if __name__ == "__main__":
             best_conf = test_conf.copy()
             best_conf_train_results = sim_out.copy()
 
+            print("ITERATION:", iter_num + 1)
             print("New best conf:")
             print(best_conf)
             print("New best train results:")
-            print(best_conf_train_results)
+            print(best_conf_train_results, '\n')
+
+            dump_file.write(f"ITERATION: {iter_num + 1}\n")
+            dump_file.write("New best conf:\n")
+            dump_file.write(best_conf)
+            dump_file.write("\n")
+            dump_file.write("New best train results:\n")
+            dump_file.write(best_conf_train_results)
+            dump_file.write("\n\n")
 
         end_time = time.perf_counter()
         iter_num += 1
-        print(f"{iter_num},{new_eval},{best_eval},{end_time - start_time}")
+        num_configs -=1
 
+        print(f"{iter_num},{new_eval},{best_eval},{end_time - start_time}")
+        iter_file.write(f"{iter_num},{new_eval},{best_eval},{end_time - start_time}\n")
 
