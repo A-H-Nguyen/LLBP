@@ -162,32 +162,30 @@ if __name__ == "__main__":
 
     print("=" * 55, "\n")
 
-
     # Generate all combinations
     keys, values = zip(*param_def.items())
     grid = [dict(zip(keys, v)) for v in itertools.product(*values)]
     num_configs = len(grid)
 
-    print(f"{num_configs} configurations in testing set")
-    print(f"Evaluate {args.limit} of them")
+    print(f"*** {num_configs} configurations in testing set")
+    print(f"*** Evaluate {args.limit} of them\n")
 
     best_conf = default_conf.copy()
     best_conf_train_results = {}
     test_conf = {}
-    best_mpki_improvement = 0.0
-    iteration_num = 0
+    best_eval = 0.0
+    iter_num = 0
 
-    print("ITERATION NUMBER,MPKI IMPROVEMENT,BEST IMPROVEMENT")
+    print("ITERATION NUMBER,MPKI IMPROVEMENT,BEST IMPROVEMENT,RUNTIME(sec)")
 
-    while iteration_num < args.limit:
-        random.randint(0,num_configs)
-        test_conf = grid.copy()
+    while iter_num < args.limit:
+        start_time = time.perf_counter()
+        test_conf = grid.pop(random.randint(0,len(grid)-1)).copy()
         sim_out = run_sim(test_conf)
-        eval_out = evaluate(sim_out)
+        new_eval = evaluate(sim_out)
 
-
-        if eval_out > best_mpki_improvement:
-            best_mpki_improvement = eval_out
+        if new_eval > best_eval:
+            best_eval = new_eval
             best_conf = test_conf.copy()
             best_conf_train_results = sim_out.copy()
 
@@ -196,40 +194,8 @@ if __name__ == "__main__":
             print("New best train results:")
             print(best_conf_train_results)
 
-        iteration_num += 1
-        print(f"{iteration_num},{eval_out},{best_mpki_improvement}")
+        end_time = time.perf_counter()
+        iter_num += 1
+        print(f"{iter_num},{new_eval},{best_eval},{end_time - start_time}")
 
-    # print(f"*** Evaluating final config ***\n") 
-
-    # EVAL_WARMUP = 100000000
-    # EVAL_SIM    = 200000000
-    # test_traces = [trace_dir + workload + trace_ext for workload in testing_workloads]
-
-    # print(f" - Num warmup instructions: {EVAL_WARMUP}")
-    # print(f" - Num simulation instructions: {EVAL_SIM}")
-    # print( " - Workloads used for testing:")
-    # for trace in test_traces:
-    #     print("   -", os.path.basename(trace))
-
-    # eval_start = time.perf_counter()
-    # for trace in test_traces:
-    #     with open("output.log", "w") as logfile:
-    #         result = subprocess.run(["./build/predictor", "-c", "configs/default_config.json", 
-    #                                  "-w", str(EVAL_WARMUP), 
-    #                                  "-n", str(args.simulation_instructions), trace],
-    #                                  stdout=logfile, stderr=subprocess.STDOUT, text=True)
-    #     baseline = get_mpki()
-
-    #     with open("output.log", "w") as logfile:
-    #         result = subprocess.run(["./build/predictor", "-c", args.config, 
-    #                                  "-w", str(args.warmup_instructions), 
-    #                                  "-n", str(args.simulation_instructions), trace],
-    #                                  stdout=logfile, stderr=subprocess.STDOUT, text=True)
-    #     test_out = get_mpki()
-
-    #     print(f" - {os.path.basename(trace)}:\tDefault Conf MPKI: {baseline}\tTest Conf MPKI: {test_out}")
-
-    # eval_end = time.perf_counter()
-
-    # print(f"\nNew config evaluation took {eval_end - eval_start} seconds\n")
 

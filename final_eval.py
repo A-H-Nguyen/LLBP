@@ -21,6 +21,20 @@ testing_workloads = [
         "renaissance-finagle-chirper"
         ]
 
+params = [
+    "numPatterns"     ,
+    "numContexts"     ,
+    "ctxAssoc"        ,
+    "ptrnAssoc"       ,
+    "TTWidth"         ,
+    "CTWidth"         ,
+    "pbSize"          ,
+    "pbAssoc"         ,
+    "CtrWidth"        ,
+    "ReplCtrWidth"    ,
+    "CtxReplCtrWidth" 
+]
+
 with open("output/baseline_mpki.json", "r") as f:
     initial_mpki = json.load(f)
 
@@ -50,6 +64,14 @@ if __name__ == "__main__":
     print( " - Workloads used for testing:")
     for trace in test_traces:
         print("   -", os.path.basename(trace))
+
+    with open(args.config, 'r') as f:
+        eval_conf = json.load(f)
+        print("Config under test:")
+        for p in eval_conf.keys():
+            if p in params:
+                print(f"\t{p} : {eval_conf[p]}")
+    print("=" * 55, "\n")
 
     eval_start = time.perf_counter()
     for trace in test_traces:
